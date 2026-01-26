@@ -1,14 +1,13 @@
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
--- HELPER: FIND YOUR FARM
+-- HELPER: FIND YOUR FARM (Verified from your Console Screenshot)
 local function getMyFarm()
     local farmContainer = workspace:FindFirstChild("Farm")
     if not farmContainer then return nil end
 
     for _, farmModel in pairs(farmContainer:GetChildren()) do
-        -- Navigate the exact path from your console screenshot:
-        -- Farm (Folder) -> Important -> Data -> Owner
+        -- Path: Farm -> Important -> Data -> Owner
         local important = farmModel:FindFirstChild("Important")
         local data = important and important:FindFirstChild("Data")
         local owner = data and data:FindFirstChild("Owner")
@@ -20,7 +19,7 @@ local function getMyFarm()
     return nil
 end
 
--- HELPER: FIND THE DIRT STRIP
+-- HELPER: FIND AN EMPTY PLOT (The dirt strips in your photo)
 local function getAvailablePlot(mode)
     local myFarm = getMyFarm()
     if not myFarm then return nil end
@@ -30,7 +29,7 @@ local function getAvailablePlot(mode)
 
     local spots = {}
     for _, spot in pairs(plantLocations:GetChildren()) do
-        -- Verified Name from your Console: Can_Plant
+        -- Logic: A spot is empty if it has no children (no plant growing on it)
         if spot.Name == "Can_Plant" and #spot:GetChildren() == 0 then
             table.insert(spots, spot)
         end
@@ -38,6 +37,7 @@ local function getAvailablePlot(mode)
 
     if #spots == 0 then return nil end
 
+    -- Position Modes
     if mode == "Random" then
         return spots[math.random(1, #spots)]
     elseif mode == "Player Position" then
@@ -55,40 +55,44 @@ local function getAvailablePlot(mode)
     end
 end
 
--- MAIN LOOP
+-- MAIN AUTOMATION LOOP
 task.spawn(function()
     local seedIndex = 1
     local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-    -- We need to verify this name with SimpleSpy!
-    local PlantRemote = ReplicatedStorage:FindFirstChild("Plant_Seed", true) or
+    -- Grow a Garden typically uses one of these names for the Remote
+    local PlantRemote = ReplicatedStorage:FindFirstChild("PlantSeed", true) or
         ReplicatedStorage:FindFirstChild("Plant", true) or
         ReplicatedStorage:FindFirstChild("RequestPlant", true)
 
     while task.wait() do
+        -- Only run if Toggle is ON and Seeds are Selected
         if _G.PlantSettings and _G.PlantSettings.Enabled and #_G.PlantSettings.SelectedSeeds > 0 then
             local seedName = _G.PlantSettings.SelectedSeeds[seedIndex]
-            local targetPlot = getAvailablePlot(_G.PlantSettings.Mode)
 
-            if targetPlot and seedName and seedName ~= "NONE" then
-                -- Inventory Check
-                local tool = LocalPlayer.Backpack:FindFirstChild(seedName) or
-                    LocalPlayer.Character:FindFirstChild(seedName)
+            -- 1. SEARCH BACKPACK FOR THE SEED
+            local tool = LocalPlayer.Backpack:FindFirstChild(seedName) or LocalPlayer.Character:FindFirstChild(seedName)
 
-                if tool then
-                    if tool.Parent == LocalPlayer.Backpack then
-                        LocalPlayer.Character.Humanoid:EquipTool(tool)
-                        task.wait(0.1)
-                    end
+            if tool then
+                -- 2. EQUIP TOOL (Must be holding it to plant)
+                if tool.Parent == LocalPlayer.Backpack then
+                    LocalPlayer.Character.Humanoid:EquipTool(tool)
+                    task.wait(0.2) -- Delay to ensure tool is equipped
+                end
 
-                    -- FIRE REMOTE
+                -- 3. FIND THE PLOT STRIP
+                local targetPlot = getAvailablePlot(_G.PlantSettings.Mode)
+
+                if targetPlot then
+                    -- 4. FIRE THE REMOTE
                     if PlantRemote then
-                        -- !! This line might need changing based on your SimpleSpy result !!
+                        -- Arg1: The Plot Strip (Object), Arg2: The Seed Name (String)
                         PlantRemote:FireServer(targetPlot, seedName)
                     end
                 end
             end
 
+            -- Cycle to next seed in multi-select
             seedIndex = (seedIndex % #_G.PlantSettings.SelectedSeeds) + 1
             task.wait(_G.PlantSettings.Delay)
         end

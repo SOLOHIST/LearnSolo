@@ -11,8 +11,8 @@ local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 -- 3. CREATE WINDOW (This is where the loading screen is customized)
 local Window = Rayfield:CreateWindow({
-    Name = "LearnSolo Hub",
-    LoadingTitle = "LearnSolo",       -- Big text on loading screen
+    Name = "MINE HUB Hub | GROW A GARDEN",
+    LoadingTitle = "MINE HUB",        -- Big text on loading screen
     LoadingSubtitle = "by LearnSolo", -- Small text below loading screen
     ConfigurationSaving = {
         Enabled = true,

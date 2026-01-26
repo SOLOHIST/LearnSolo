@@ -1,4 +1,4 @@
--- 1. SETUP GLOBALS (Added Player Settings)
+-- 1. SETUP GLOBALS
 _G.PlantSettings = {
     Enabled = false,
     SelectedSeeds = {},
@@ -36,11 +36,11 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/SOLOHIST/LearnSolo/ma
 
 -- 5. CREATE TABS
 
--- NEW: MAIN TAB (Local Player)
-local MainTab = Window:CreateTab("Main", "user") -- "user" is the icon for person
+-- MAIN TAB (Local Player)
+local MainTab = Window:CreateTab("Main", "user")
 local PlayerSection = MainTab:CreateSection("Local Player")
 
-MainTab:CreateSlider({
+local SpeedSlider = MainTab:CreateSlider({
     Name = "WalkSpeed",
     Range = { 16, 300 },
     Increment = 1,
@@ -53,9 +53,11 @@ MainTab:CreateSlider({
 })
 
 MainTab:CreateButton({
-    Name = "Reset Character",
+    Name = "Reset Speed",
+    Info = "Sets your speed back to 16",
     Callback = function()
-        game.Players.LocalPlayer.Character:BreakJoints()
+        _G.PlayerSettings.WalkSpeed = 16
+        SpeedSlider:Set(16) -- This moves the slider handle back to 16
     end,
 })
 

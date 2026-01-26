@@ -1,19 +1,22 @@
--- 1. SETUP GLOBALS (Must be first)
+-- 1. SETUP GLOBALS (Added Player Settings)
 _G.PlantSettings = {
     Enabled = false,
     SelectedSeeds = {},
     Mode = "Good Position",
     Delay = 0.5
 }
+_G.PlayerSettings = {
+    WalkSpeed = 16
+}
 
 -- 2. GET UI LIBRARY
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
--- 3. CREATE WINDOW (This is where the loading screen is customized)
+-- 3. CREATE WINDOW
 local Window = Rayfield:CreateWindow({
     Name = "MINE HUB | GROW A GARDEN",
-    LoadingTitle = "MINE HUB",        -- Big text on loading screen
-    LoadingSubtitle = "by LearnSolo", -- Small text below loading screen
+    LoadingTitle = "MINE HUB",
+    LoadingSubtitle = "by LearnSolo",
     ConfigurationSaving = {
         Enabled = true,
         FolderName = "LearnSoloConfigs",
@@ -24,16 +27,40 @@ local Window = Rayfield:CreateWindow({
         Invite = "YOUR_DISCORD_INVITE",
         RememberJoins = true
     },
-    KeySystem = false, -- Set to true if you want a password system
+    KeySystem = false,
 })
 
 -- 4. LOAD LOGIC FROM GITHUB
 task.wait(0.5)
 loadstring(game:HttpGet("https://raw.githubusercontent.com/SOLOHIST/LearnSolo/main/Modules/AutoPlant.lua"))()
 
--- 5. CREATE TABS & ELEMENTS
-local AutoTab = Window:CreateTab("Automatically", "play")
+-- 5. CREATE TABS
 
+-- NEW: MAIN TAB (Local Player)
+local MainTab = Window:CreateTab("Main", "user") -- "user" is the icon for person
+local PlayerSection = MainTab:CreateSection("Local Player")
+
+MainTab:CreateSlider({
+    Name = "WalkSpeed",
+    Range = { 16, 300 },
+    Increment = 1,
+    Suffix = "Speed",
+    CurrentValue = 16,
+    Flag = "SpeedSlider",
+    Callback = function(Value)
+        _G.PlayerSettings.WalkSpeed = Value
+    end,
+})
+
+MainTab:CreateButton({
+    Name = "Reset Character",
+    Callback = function()
+        game.Players.LocalPlayer.Character:BreakJoints()
+    end,
+})
+
+-- AUTOMATICALLY TAB (Planting)
+local AutoTab = Window:CreateTab("Automatically", "play")
 AutoTab:CreateSection("Automation Plants")
 
 AutoTab:CreateDropdown({
@@ -66,6 +93,20 @@ AutoTab:CreateToggle({
     Flag = "AutoPlantToggle",
     Callback = function(Value) _G.PlantSettings.Enabled = Value end,
 })
+
+-- 6. LOOPS & UTILITIES
+
+-- WalkSpeed Loop
+task.spawn(function()
+    while task.wait() do
+        pcall(function()
+            local char = game.Players.LocalPlayer.Character
+            if char and char:FindFirstChild("Humanoid") then
+                char.Humanoid.WalkSpeed = _G.PlayerSettings.WalkSpeed
+            end
+        end)
+    end
+end)
 
 -- UI TOGGLE KEY (H)
 game:GetService("UserInputService").InputBegan:Connect(function(input, gpe)

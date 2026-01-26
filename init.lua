@@ -38,15 +38,15 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/SOLOHIST/LearnSolo/ma
 
 -- MAIN TAB (Local Player & Discord)
 local MainTab = Window:CreateTab("Main", "user")
-local PlayerSection = MainTab:CreateSection("Community & Player")
+local PlayerSection = MainTab:CreateSection("Local Player")
 
 -- NEW: Discord Button at the top
 MainTab:CreateButton({
-    Name = "Copy Discord Invite",
+    Name = "Discord Invite",
     Info = "Join our community for updates!",
     Interact = 'Copy Link',
     Callback = function()
-        setclipboard("https://discord.gg/yourlink") -- REPLACE WITH YOUR ACTUAL LINK
+        setclipboard("https://discord.gg/V8hKVN8Cwz") -- REPLACE WITH YOUR ACTUAL LINK
         Rayfield:Notify({
             Title = "Copied!",
             Content = "Discord invite link copied to clipboard.",

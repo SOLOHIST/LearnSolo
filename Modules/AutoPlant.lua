@@ -1,13 +1,16 @@
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
--- HELPER: FIND YOUR FARM (Verified from your Console Screenshot)
+-- ====== HELPERS ======
 local function getMyFarm()
     local farmContainer = workspace:FindFirstChild("Farm")
-    if not farmContainer then return nil end
+    if not farmContainer then
+        print("[DEBUG] Farm container not found in workspace.")
+        return nil
+    end
 
     for _, farmModel in pairs(farmContainer:GetChildren()) do
-        -- Path: Farm -> Important -> Data -> Owner
         local important = farmModel:FindFirstChild("Important")
         local data = important and important:FindFirstChild("Data")
         local owner = data and data:FindFirstChild("Owner")
@@ -16,28 +19,33 @@ local function getMyFarm()
             return farmModel
         end
     end
+
+    print("[DEBUG] No farm owned by player found.")
     return nil
 end
 
--- HELPER: FIND AN EMPTY PLOT (The dirt strips in your photo)
 local function getAvailablePlot(mode)
     local myFarm = getMyFarm()
     if not myFarm then return nil end
 
-    local plantLocations = myFarm.Important:FindFirstChild("Plant_Locations")
-    if not plantLocations then return nil end
+    local plantLocations = myFarm:FindFirstChild("Important") and myFarm.Important:FindFirstChild("Plant_Locations")
+    if not plantLocations then
+        print("[DEBUG] Plant_Locations not found in farm.")
+        return nil
+    end
 
     local spots = {}
     for _, spot in pairs(plantLocations:GetChildren()) do
-        -- Logic: A spot is empty if it has no children (no plant growing on it)
         if spot.Name == "Can_Plant" and #spot:GetChildren() == 0 then
             table.insert(spots, spot)
         end
     end
 
-    if #spots == 0 then return nil end
+    if #spots == 0 then
+        print("[DEBUG] No empty plots available.")
+        return nil
+    end
 
-    -- Position Modes
     if mode == "Random" then
         return spots[math.random(1, #spots)]
     elseif mode == "Player Position" then
@@ -51,50 +59,62 @@ local function getAvailablePlot(mode)
         end
         return nearest
     else
-        return spots[1] -- "Good Position"
+        return spots[1]
     end
 end
 
--- MAIN AUTOMATION LOOP
+-- ====== MAIN LOOP ======
 task.spawn(function()
     local seedIndex = 1
-    local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-    -- Grow a Garden typically uses one of these names for the Remote
+    -- Attempt to find Plant Remote
     local PlantRemote = ReplicatedStorage:FindFirstChild("PlantSeed", true) or
         ReplicatedStorage:FindFirstChild("Plant", true) or
         ReplicatedStorage:FindFirstChild("RequestPlant", true)
 
-    while task.wait() do
-        -- Only run if Toggle is ON and Seeds are Selected
-        if _G.PlantSettings and _G.PlantSettings.Enabled and #_G.PlantSettings.SelectedSeeds > 0 then
-            local seedName = _G.PlantSettings.SelectedSeeds[seedIndex]
+    if not PlantRemote then
+        print("[DEBUG] Plant remote not found in ReplicatedStorage.")
+        return
+    else
+        print("[DEBUG] Plant remote found:", PlantRemote:GetFullName())
+    end
 
-            -- 1. SEARCH BACKPACK FOR THE SEED
-            local tool = LocalPlayer.Backpack:FindFirstChild(seedName) or LocalPlayer.Character:FindFirstChild(seedName)
-
-            if tool then
-                -- 2. EQUIP TOOL (Must be holding it to plant)
-                if tool.Parent == LocalPlayer.Backpack then
-                    LocalPlayer.Character.Humanoid:EquipTool(tool)
-                    task.wait(0.2) -- Delay to ensure tool is equipped
-                end
-
-                -- 3. FIND THE PLOT STRIP
-                local targetPlot = getAvailablePlot(_G.PlantSettings.Mode)
-
-                if targetPlot then
-                    -- 4. FIRE THE REMOTE
-                    if PlantRemote then
-                        -- Arg1: The Plot Strip (Object), Arg2: The Seed Name (String)
-                        PlantRemote:FireServer(targetPlot, seedName)
-                    end
-                end
-            end
-
-            -- Cycle to next seed in multi-select
-            seedIndex = (seedIndex % #_G.PlantSettings.SelectedSeeds) + 1
-            task.wait(_G.PlantSettings.Delay)
+    while task.wait(0.5) do
+        -- Check if planting is enabled
+        if not (_G.PlantSettings and _G.PlantSettings.Enabled and #_G.PlantSettings.SelectedSeeds > 0) then
+            print("[DEBUG] Planting is disabled or no seeds selected.")
+            task.wait(1)
+            continue
         end
+
+        local seedName = _G.PlantSettings.SelectedSeeds[seedIndex]
+        print("[DEBUG] Attempting to plant seed:", seedName)
+
+        local tool = LocalPlayer.Backpack:FindFirstChild(seedName) or LocalPlayer.Character:FindFirstChild(seedName)
+        if not tool then
+            print("[DEBUG] Seed tool not found in Backpack or Character:", seedName)
+            seedIndex = (seedIndex % #_G.PlantSettings.SelectedSeeds) + 1
+            continue
+        end
+
+        if tool.Parent == LocalPlayer.Backpack then
+            LocalPlayer.Character.Humanoid:EquipTool(tool)
+            print("[DEBUG] Equipped seed tool:", seedName)
+            task.wait(0.5) -- Give time to equip
+        end
+
+        local targetPlot = getAvailablePlot(_G.PlantSettings.Mode)
+        if not targetPlot then
+            print("[DEBUG] No valid plot found to plant.")
+            task.wait(1)
+            continue
+        end
+
+        print("[DEBUG] Planting at plot:", targetPlot.Name)
+        PlantRemote:FireServer(targetPlot, seedName)
+
+        -- Cycle to next seed
+        seedIndex = (seedIndex % #_G.PlantSettings.SelectedSeeds) + 1
+        task.wait(_G.PlantSettings.Delay or 1)
     end
 end)

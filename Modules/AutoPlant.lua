@@ -7,11 +7,12 @@ local function getMyFarm()
     if not farmContainer then return nil end
 
     for _, farmModel in pairs(farmContainer:GetChildren()) do
+        -- Navigate the exact path from your console screenshot:
+        -- Farm (Folder) -> Important -> Data -> Owner
         local important = farmModel:FindFirstChild("Important")
         local data = important and important:FindFirstChild("Data")
         local owner = data and data:FindFirstChild("Owner")
 
-        -- Check if the farm belongs to you
         if owner and (owner.Value == LocalPlayer.Name or tostring(owner.Value) == tostring(LocalPlayer.UserId)) then
             return farmModel
         end
@@ -19,7 +20,7 @@ local function getMyFarm()
     return nil
 end
 
--- HELPER: FIND EMPTY STRIPS (The strips in your photo)
+-- HELPER: FIND THE DIRT STRIP
 local function getAvailablePlot(mode)
     local myFarm = getMyFarm()
     if not myFarm then return nil end
@@ -29,9 +30,7 @@ local function getAvailablePlot(mode)
 
     local spots = {}
     for _, spot in pairs(plantLocations:GetChildren()) do
-        -- 1. Must be named Can_Plant
-        -- 2. Must be empty (no plant model inside it)
-        -- 3. Must be "unlocked" (Transparency is usually 1 for unlocked, 0.5+ for locked)
+        -- Verified Name from your Console: Can_Plant
         if spot.Name == "Can_Plant" and #spot:GetChildren() == 0 then
             table.insert(spots, spot)
         end
@@ -51,8 +50,8 @@ local function getAvailablePlot(mode)
             end
         end
         return nearest
-    else                -- "Good Position"
-        return spots[1] -- Plants in order from first plot to last
+    else
+        return spots[1] -- "Good Position"
     end
 end
 
@@ -61,37 +60,35 @@ task.spawn(function()
     local seedIndex = 1
     local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-    -- The game usually stores the planting event here
-    local PlantRemote = ReplicatedStorage:FindFirstChild("PlantSeed", true) or
-        ReplicatedStorage:FindFirstChild("Plant", true)
+    -- We need to verify this name with SimpleSpy!
+    local PlantRemote = ReplicatedStorage:FindFirstChild("Plant_Seed", true) or
+        ReplicatedStorage:FindFirstChild("Plant", true) or
+        ReplicatedStorage:FindFirstChild("RequestPlant", true)
 
     while task.wait() do
-        -- Check if UI settings exist and Toggle is ON
         if _G.PlantSettings and _G.PlantSettings.Enabled and #_G.PlantSettings.SelectedSeeds > 0 then
             local seedName = _G.PlantSettings.SelectedSeeds[seedIndex]
             local targetPlot = getAvailablePlot(_G.PlantSettings.Mode)
 
             if targetPlot and seedName and seedName ~= "NONE" then
-                -- CHECK INVENTORY FOR SEED
+                -- Inventory Check
                 local tool = LocalPlayer.Backpack:FindFirstChild(seedName) or
                     LocalPlayer.Character:FindFirstChild(seedName)
 
                 if tool then
-                    -- Equip if in backpack
                     if tool.Parent == LocalPlayer.Backpack then
                         LocalPlayer.Character.Humanoid:EquipTool(tool)
                         task.wait(0.1)
                     end
 
                     -- FIRE REMOTE
-                    -- Arg 1: The strip of dirt, Arg 2: The name of the seed
                     if PlantRemote then
+                        -- !! This line might need changing based on your SimpleSpy result !!
                         PlantRemote:FireServer(targetPlot, seedName)
                     end
                 end
             end
 
-            -- Move to next seed in your multi-select list
             seedIndex = (seedIndex % #_G.PlantSettings.SelectedSeeds) + 1
             task.wait(_G.PlantSettings.Delay)
         end

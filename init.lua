@@ -127,16 +127,6 @@ task.spawn(function()
 end)
 
 -- UI TOGGLE KEY (H)
-game:GetService("UserInputService").InputBegan:Connect(function(input, gpe)
-    if not gpe and input.KeyCode == Enum.KeyCode.H then
-        if Window.Visible then Window:Minimize() else Window:Maximize() end
-    end
-end)
-
--- 7. FINALLY: LOAD SAVED CONFIGURATION
-Rayfield:LoadConfiguration()
-
--- UI TOGGLE KEY (H)
 local guiVisible = true
 game:GetService("UserInputService").InputBegan:Connect(function(input, gpe)
     if not gpe and input.KeyCode == Enum.KeyCode.H then
@@ -151,3 +141,6 @@ game:GetService("UserInputService").InputBegan:Connect(function(input, gpe)
         end
     end
 end)
+
+-- 7. FINALLY: LOAD SAVED CONFIGURATION
+Rayfield:LoadConfiguration()

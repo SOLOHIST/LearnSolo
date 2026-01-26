@@ -16,7 +16,7 @@ local function getMyFarm()
     return nil
 end
 
--- HELPER: FIND AVAILABLE 'CAN_PLANT' SPOT
+-- HELPER: GET SPOT
 local function getTargetSpot(mode)
     local farm = getMyFarm()
     if not farm then return nil end
@@ -31,23 +31,8 @@ local function getTargetSpot(mode)
     end
 
     if #availableSpots == 0 then return nil end
-
-    if mode == "Good Position" then
-        return availableSpots[1]                               -- Returns the first empty spot in order
-    elseif mode == "Random" then
-        return availableSpots[math.random(1, #availableSpots)] -- Picks random empty spot
-    elseif mode == "Player Position" then
-        local nearest = nil
-        local dist = math.huge
-        for _, spot in pairs(availableSpots) do
-            local d = (LocalPlayer.Character.HumanoidRootPart.Position - spot.Position).Magnitude
-            if d < dist then
-                dist = d
-                nearest = spot
-            end
-        end
-        return nearest
-    end
+    if mode == "Random" then return availableSpots[math.random(1, #availableSpots)] end
+    return availableSpots[1] -- Good Position
 end
 
 -- MAIN AUTOMATION LOOP
@@ -58,21 +43,18 @@ task.spawn(function()
         ReplicatedStorage:FindFirstChild("Plant", true)
 
     while task.wait() do
-        if _G.PlantSettings.Enabled and #_G.PlantSettings.SelectedSeeds > 0 then
+        -- SAFETY CHECK: Ensure the UI has created the settings table
+        if _G.PlantSettings and _G.PlantSettings.Enabled and #_G.PlantSettings.SelectedSeeds > 0 then
             local spot = getTargetSpot(_G.PlantSettings.Mode)
             local seedName = _G.PlantSettings.SelectedSeeds[seedIndex]
 
-            if spot and seedName and seedName ~= "NONE" then
-                -- 1. Equip Tool
+            if spot and seedName then
                 local tool = LocalPlayer.Backpack:FindFirstChild(seedName)
                 if tool then LocalPlayer.Character.Humanoid:EquipTool(tool) end
 
-                -- 2. Plant
                 if PlantRemote then
                     PlantRemote:FireServer(spot, seedName)
                 end
-
-                -- 3. Cycle Index
                 seedIndex = (seedIndex % #_G.PlantSettings.SelectedSeeds) + 1
             end
             task.wait(_G.PlantSettings.Delay)

@@ -1,4 +1,4 @@
--- 1. SETUP GLOBALS FIRST (Prevents the 'nil' error)
+-- 1. SETUP GLOBALS FIRST
 _G.PlantSettings = {
     Enabled = false,
     SelectedSeeds = {},
@@ -9,20 +9,24 @@ _G.PlantSettings = {
 -- 2. GET UI LIBRARY
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
--- 3. CREATE WINDOW
+-- 3. CREATE WINDOW (Branded as LearnSolo)
 local Window = Rayfield:CreateWindow({
-    Name = "LearnSolo Hub | Grow a Garden",
-    LoadingTitle = "Loading Auto-Plant...",
+    Name = "LearnSolo Hub",           -- Changed interface name
+    LoadingTitle = "LearnSolo",       -- Changed loading screen name
+    LoadingSubtitle = "by LearnSolo", -- Changed subtitle
     ConfigurationSaving = { Enabled = true, FolderName = "LearnSoloConfigs", FileName = "PlantConfig" },
     KeySystem = false,
 })
 
--- 4. LOAD LOGIC (Wait a split second for safety)
+-- 4. LOAD LOGIC (Wait for safety)
 task.wait(0.5)
+-- Make sure this link is correct for your repository
 loadstring(game:HttpGet("https://raw.githubusercontent.com/SOLOHIST/LearnSolo/main/Modules/AutoPlant.lua"))()
 
 -- 5. CREATE TABS
 local AutoTab = Window:CreateTab("Automatically", "play")
+
+AutoTab:CreateSection("Automation Plants")
 
 AutoTab:CreateDropdown({
     Name = "Select Seeds",
@@ -54,3 +58,10 @@ AutoTab:CreateToggle({
     Flag = "AutoPlantToggle",
     Callback = function(Value) _G.PlantSettings.Enabled = Value end,
 })
+
+-- HIDE UI (Press H)
+game:GetService("UserInputService").InputBegan:Connect(function(input, gpe)
+    if not gpe and input.KeyCode == Enum.KeyCode.H then
+        if Window.Visible then Window:Minimize() else Window:Maximize() end
+    end
+end)

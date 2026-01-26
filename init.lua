@@ -18,7 +18,7 @@ local Window = Rayfield:CreateWindow({
     LoadingTitle = "MINE HUB",
     LoadingSubtitle = "by LearnSolo",
     ConfigurationSaving = {
-        Enabled = true,
+        Enabled = true, -- KEEP THIS TRUE
         FolderName = "LearnSoloConfigs",
         FileName = "PlantConfig"
     },
@@ -36,33 +36,32 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/SOLOHIST/LearnSolo/ma
 
 -- 5. CREATE TABS
 
--- MAIN TAB (Local Player & Discord)
+-- MAIN TAB
 local MainTab = Window:CreateTab("Main", "user")
 local PlayerSection = MainTab:CreateSection("Local Player")
 
--- NEW: Discord Button at the top
 MainTab:CreateButton({
     Name = "Discord Invite",
     Info = "Join our community for updates!",
     Interact = 'Copy Link',
     Callback = function()
-        setclipboard("https://discord.gg/V8hKVN8Cwz") -- REPLACE WITH YOUR ACTUAL LINK
+        setclipboard("https://discord.gg/V8hKVN8Cwz")
         Rayfield:Notify({
             Title = "Copied!",
             Content = "Discord invite link copied to clipboard.",
             Duration = 5,
-            Image = 4483345998, -- Clipboard icon
+            Image = 4483345998,
         })
     end,
 })
 
 local SpeedSlider = MainTab:CreateSlider({
     Name = "WalkSpeed",
-    Range = { 16, 300 },
+    Range = { 16, 100 },
     Increment = 1,
     Suffix = "Speed",
     CurrentValue = 16,
-    Flag = "SpeedSlider",
+    Flag = "SpeedSlider", -- SAVES AS THIS ID
     Callback = function(Value)
         _G.PlayerSettings.WalkSpeed = Value
     end,
@@ -77,7 +76,7 @@ MainTab:CreateButton({
     end,
 })
 
--- AUTOMATICALLY TAB (Planting)
+-- AUTOMATICALLY TAB
 local AutoTab = Window:CreateTab("Automatically", "play")
 AutoTab:CreateSection("Automation Plants")
 
@@ -86,7 +85,7 @@ AutoTab:CreateDropdown({
     Options = { "Carrot Seed", "Strawberry Seed", "Horned Redrose", "Blueberry Seed", "Buttercup Seed", "Orange Tulip", "Rose", "Autumn Shroom", "Orange Delight", "Banana Orchid", "Olive", "Gem Fruit", "Coinfruit", "Tomato Seed", "Corn Seed", "Daffodil Seed", "Cauliflower", "Foxglove", "Mandrake", "Fall Berry", "Banesberry", "Viburnum Berry", "Fissure Berry", "Pomegranate", "Watermelon Seed", "Pumpkin Seed", "Apple Seed", "Bamboo Seed", "Rafflesia", "Green Apple", "Avocado", "Banana", "Lilac", "Broccoli", "Speargrass", "Buddhas Hand", "Protea", "Coilvine", "Sherrybloom", "Coconut Seed", "Cactus Seed", "Dragon Fruit Seed", "Mango Seed", "Peach", "Pineapple", "Kiwi", "Bell Pepper", "Prickly Pear", "Pink Lily", "Purple Dahlia", "Potato", "Torchflare", "Auburn Pine", "Kniphofia", "Ghost Pepper", "Hollow Bamboo", "Wild Pineapple", "Grape Seed", "Mushroom Seed", "Pepper Seed", "Cacao Seed", "Sunflower Seed", "Loquat", "Feijoa", "Pitcher Plant", "Legacy Sunflower", "Brussels Sprout", "Firewell", "Baobab", "Thornspire", "Yarrow", "Asteris", "Pinkside Dandelion", "Beanstalk Seed", "Ember Lily Seed", "Sugar Apple Seed", "Burning Bud Seed", "Giant Pinecone Seed", "Elder Strawberry Seed", "Romanesco Seed", "Cocomango", "Wyrmvine", "Crimson Thorn Seed", "Zebrazinkle Seed", "Octobloom Seed", "Bamboo Tree", "Lumin Bloom", "Raspberry", "Horsetail", "Blue Raspberry" },
     CurrentOption = {},
     MultipleOptions = true,
-    Flag = "SeedsDropdown",
+    Flag = "SeedsDropdown", -- SAVES SELECTED SEEDS
     Callback = function(Options) _G.PlantSettings.SelectedSeeds = Options end,
 })
 
@@ -95,20 +94,21 @@ AutoTab:CreateDropdown({
     Options = { "Good Position", "Player Position", "Random" },
     CurrentOption = { "Good Position" },
     MultipleOptions = false,
-    Flag = "PosModeDropdown",
+    Flag = "PosModeDropdown", -- SAVES SELECTED POSITION
     Callback = function(Option) _G.PlantSettings.Mode = Option[1] end,
 })
 
 AutoTab:CreateInput({
     Name = "Delay To Plants",
     PlaceholderText = "Default: 0.5",
+    Flag = "DelayInput", -- SAVES YOUR TYPED DELAY
     Callback = function(Text) _G.PlantSettings.Delay = tonumber(Text) or 0.5 end,
 })
 
 AutoTab:CreateToggle({
     Name = "Auto Plants Seed",
     CurrentValue = false,
-    Flag = "AutoPlantToggle",
+    Flag = "AutoPlantToggle", -- SAVES IF ON OR OFF
     Callback = function(Value) _G.PlantSettings.Enabled = Value end,
 })
 
@@ -132,3 +132,6 @@ game:GetService("UserInputService").InputBegan:Connect(function(input, gpe)
         if Window.Visible then Window:Minimize() else Window:Maximize() end
     end
 end)
+
+-- 7. FINALLY: LOAD SAVED CONFIGURATION
+Rayfield:LoadConfiguration()

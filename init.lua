@@ -135,3 +135,19 @@ end)
 
 -- 7. FINALLY: LOAD SAVED CONFIGURATION
 Rayfield:LoadConfiguration()
+
+-- UI TOGGLE KEY (H)
+local guiVisible = true
+game:GetService("UserInputService").InputBegan:Connect(function(input, gpe)
+    if not gpe and input.KeyCode == Enum.KeyCode.H then
+        guiVisible = not guiVisible
+
+        -- Rayfield's UI is usually in CoreGui or PlayerGui
+        local target = game:GetService("CoreGui"):FindFirstChild("Rayfield") or
+            game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("Rayfield")
+
+        if target then
+            target.Enabled = guiVisible
+        end
+    end
+end)

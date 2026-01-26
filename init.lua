@@ -36,9 +36,25 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/SOLOHIST/LearnSolo/ma
 
 -- 5. CREATE TABS
 
--- MAIN TAB (Local Player)
+-- MAIN TAB (Local Player & Discord)
 local MainTab = Window:CreateTab("Main", "user")
-local PlayerSection = MainTab:CreateSection("Local Player")
+local PlayerSection = MainTab:CreateSection("Community & Player")
+
+-- NEW: Discord Button at the top
+MainTab:CreateButton({
+    Name = "Copy Discord Invite",
+    Info = "Join our community for updates!",
+    Interact = 'Copy Link',
+    Callback = function()
+        setclipboard("https://discord.gg/yourlink") -- REPLACE WITH YOUR ACTUAL LINK
+        Rayfield:Notify({
+            Title = "Copied!",
+            Content = "Discord invite link copied to clipboard.",
+            Duration = 5,
+            Image = 4483345998, -- Clipboard icon
+        })
+    end,
+})
 
 local SpeedSlider = MainTab:CreateSlider({
     Name = "WalkSpeed",
@@ -57,7 +73,7 @@ MainTab:CreateButton({
     Info = "Sets your speed back to 16",
     Callback = function()
         _G.PlayerSettings.WalkSpeed = 16
-        SpeedSlider:Set(16) -- This moves the slider handle back to 16
+        SpeedSlider:Set(16)
     end,
 })
 

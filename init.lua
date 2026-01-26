@@ -1,4 +1,4 @@
--- 1. SETUP GLOBALS FIRST
+-- 1. SETUP GLOBALS (Must be first)
 _G.PlantSettings = {
     Enabled = false,
     SelectedSeeds = {},
@@ -9,21 +9,29 @@ _G.PlantSettings = {
 -- 2. GET UI LIBRARY
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
--- 3. CREATE WINDOW (Branded as LearnSolo)
+-- 3. CREATE WINDOW (This is where the loading screen is customized)
 local Window = Rayfield:CreateWindow({
-    Name = "LearnSolo Hub",           -- Changed interface name
-    LoadingTitle = "LearnSolo",       -- Changed loading screen name
-    LoadingSubtitle = "by LearnSolo", -- Changed subtitle
-    ConfigurationSaving = { Enabled = true, FolderName = "LearnSoloConfigs", FileName = "PlantConfig" },
-    KeySystem = false,
+    Name = "LearnSolo Hub",
+    LoadingTitle = "LearnSolo",       -- Big text on loading screen
+    LoadingSubtitle = "by LearnSolo", -- Small text below loading screen
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = "LearnSoloConfigs",
+        FileName = "PlantConfig"
+    },
+    Discord = {
+        Enabled = false,
+        Invite = "YOUR_DISCORD_INVITE",
+        RememberJoins = true
+    },
+    KeySystem = false, -- Set to true if you want a password system
 })
 
--- 4. LOAD LOGIC (Wait for safety)
+-- 4. LOAD LOGIC FROM GITHUB
 task.wait(0.5)
--- Make sure this link is correct for your repository
 loadstring(game:HttpGet("https://raw.githubusercontent.com/SOLOHIST/LearnSolo/main/Modules/AutoPlant.lua"))()
 
--- 5. CREATE TABS
+-- 5. CREATE TABS & ELEMENTS
 local AutoTab = Window:CreateTab("Automatically", "play")
 
 AutoTab:CreateSection("Automation Plants")
@@ -59,7 +67,7 @@ AutoTab:CreateToggle({
     Callback = function(Value) _G.PlantSettings.Enabled = Value end,
 })
 
--- HIDE UI (Press H)
+-- UI TOGGLE KEY (H)
 game:GetService("UserInputService").InputBegan:Connect(function(input, gpe)
     if not gpe and input.KeyCode == Enum.KeyCode.H then
         if Window.Visible then Window:Minimize() else Window:Maximize() end

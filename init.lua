@@ -17,7 +17,7 @@ local Window = Rayfield:CreateWindow({
 
 -- LOAD THE LOGIC MODULE FROM YOUR GITHUB
 -- Replace the URL below with your actual Raw GitHub link for Part 2
-loadstring(game:HttpGet("https://raw.githubusercontent.com/YourUser/Repo/main/Modules/AutoPlant.lua"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/SOLOHIST/LearnSolo/refs/heads/main/Modules/AutoPlant.lua"))()
 
 local AutoTab = Window:CreateTab("Automatically", "play")
 

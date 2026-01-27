@@ -2,7 +2,7 @@ local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-print("[Mine Hub] Logic starting for Grow a Garden...")
+print("[Mine Hub] Logic Updated: Planting held seed only.")
 
 -- 1. FIND YOUR FARM
 local function getMyFarm()
@@ -15,7 +15,6 @@ local function getMyFarm()
             local data = important:FindFirstChild("Data")
             local owner = data and data:FindFirstChild("Owner")
 
-            -- Checks if name matches or UserId matches
             if owner and (tostring(owner.Value) == LocalPlayer.Name or tostring(owner.Value) == tostring(LocalPlayer.UserId)) then
                 return farmModel
             end
@@ -25,15 +24,14 @@ local function getMyFarm()
 end
 
 -- 2. CHECK IF A PLOT IS EMPTY
--- In this game, plants are in 'Plants_Physical', not inside the 'Can_Plant' part.
 local function isPlotEmpty(farm, plotPart)
     local plantsPhysical = farm.Important:FindFirstChild("Plants_Physical")
     if not plantsPhysical then return true end
 
     for _, plant in pairs(plantsPhysical:GetChildren()) do
-        -- Check if a plant is sitting at the same position as the plot
-        if (plant:GetPivot().Position - plotPart.Position).Magnitude < 2 then
-            return false -- Someone is already growing here
+        -- If a plant model is within 3 studs of the dirt, it's full
+        if (plant:GetPivot().Position - plotPart.Position).Magnitude < 3 then
+            return false
         end
     end
     return true
@@ -57,51 +55,40 @@ end
 
 -- 4. MAIN LOOP
 task.spawn(function()
-    local seedIndex = 1
+    -- Find the remote (Ensures we get the RemoteEvent, not the ModuleScript)
+    local function getRemote()
+        for _, v in pairs(ReplicatedStorage:GetDescendants()) do
+            if v:IsA("RemoteEvent") and (v.Name == "PlantSeed" or v.Name == "RequestPlant") then
+                return v
+            end
+        end
+        return nil
+    end
 
-    -- Find the remote (It is usually in ReplicatedStorage)
-    local PlantRemote = ReplicatedStorage:FindFirstChild("PlantSeed", true) or
-        ReplicatedStorage:FindFirstChild("RequestPlant", true) or
-        ReplicatedStorage:FindFirstChild("Plant", true)
+    local PlantRemote = getRemote()
 
     while task.wait(0.1) do
-        if _G.PlantSettings and _G.PlantSettings.Enabled and #_G.PlantSettings.SelectedSeeds > 0 then
-            local selectedName = _G.PlantSettings.SelectedSeeds[seedIndex]
+        -- Only run if the Toggle is ON in your UI
+        if _G.PlantSettings and _G.PlantSettings.Enabled then
+            -- CHECK WHAT YOU ARE HOLDING IN YOUR HAND
+            local char = LocalPlayer.Character
+            local heldTool = char and char:FindFirstChildWhichIsA("Tool")
 
-            -- Find tool in Backpack or Character
-            local tool = nil
-            local search = LocalPlayer.Backpack:GetChildren()
-            for _, v in pairs(LocalPlayer.Character:GetChildren()) do table.insert(search, v) end
-
-            for _, item in pairs(search) do
-                if item:IsA("Tool") and item.Name:find(selectedName) then
-                    tool = item
-                    break
-                end
-            end
-
-            if tool then
-                -- Equip tool if not held
-                if tool.Parent == LocalPlayer.Backpack then
-                    LocalPlayer.Character.Humanoid:EquipTool(tool)
-                    task.wait(0.2)
-                end
-
+            if heldTool then
                 local targetPlot = getAvailablePlot()
+
                 if targetPlot and PlantRemote then
-                    -- The Remote call for this game:
-                    -- Argument 1: The Plot Part (Can_Plant)
-                    -- Argument 2: The Seed Name
-                    PlantRemote:FireServer(targetPlot, selectedName)
+                    -- CLEAN NAME: Removes "[x50]" suffix so the server accepts the name
+                    local cleanName = heldTool.Name:split(" [")[1]
 
-                    print("[Mine Hub] Successfully planted: " .. selectedName)
+                    -- FIRE THE REMOTE
+                    PlantRemote:FireServer(targetPlot, cleanName)
 
-                    seedIndex = (seedIndex % #_G.PlantSettings.SelectedSeeds) + 1
+                    print("[Mine Hub] Planted held seed: " .. cleanName)
+
+                    -- Wait the delay set in your UI before trying the next plot
                     task.wait(_G.PlantSettings.Delay or 0.5)
                 end
-            else
-                -- Skip seed if you don't have it
-                seedIndex = (seedIndex % #_G.PlantSettings.SelectedSeeds) + 1
             end
         end
     end

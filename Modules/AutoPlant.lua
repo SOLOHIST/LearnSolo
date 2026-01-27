@@ -1,8 +1,9 @@
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
-print("[Mine Hub] Logic Updated: Planting held seed only.")
+print("[Mine Hub] Active Action: Planting Held Seed Mode")
 
 -- 1. FIND YOUR FARM
 local function getMyFarm()
@@ -11,13 +12,11 @@ local function getMyFarm()
 
     for _, farmModel in pairs(farmContainer:GetChildren()) do
         local important = farmModel:FindFirstChild("Important")
-        if important then
-            local data = important:FindFirstChild("Data")
-            local owner = data and data:FindFirstChild("Owner")
+        local data = important and important:FindFirstChild("Data")
+        local owner = data and data:FindFirstChild("Owner")
 
-            if owner and (tostring(owner.Value) == LocalPlayer.Name or tostring(owner.Value) == tostring(LocalPlayer.UserId)) then
-                return farmModel
-            end
+        if owner and (tostring(owner.Value) == LocalPlayer.Name or tostring(owner.Value) == tostring(LocalPlayer.UserId)) then
+            return farmModel
         end
     end
     return nil
@@ -29,15 +28,15 @@ local function isPlotEmpty(farm, plotPart)
     if not plantsPhysical then return true end
 
     for _, plant in pairs(plantsPhysical:GetChildren()) do
-        -- If a plant model is within 3 studs of the dirt, it's full
-        if (plant:GetPivot().Position - plotPart.Position).Magnitude < 3 then
+        -- Check distance to ensure the plot isn't covered by a plant model
+        if (plant:GetPivot().Position - plotPart.Position).Magnitude < 2.5 then
             return false
         end
     end
     return true
 end
 
--- 3. GET NEXT AVAILABLE PLOT
+-- 3. FIND THE NEXT AVAILABLE PLOT
 local function getAvailablePlot()
     local myFarm = getMyFarm()
     if not myFarm then return nil end
@@ -53,43 +52,62 @@ local function getAvailablePlot()
     return nil
 end
 
--- 4. MAIN LOOP
-task.spawn(function()
-    -- Find the remote (Ensures we get the RemoteEvent, not the ModuleScript)
-    local function getRemote()
-        for _, v in pairs(ReplicatedStorage:GetDescendants()) do
-            if v:IsA("RemoteEvent") and (v.Name == "PlantSeed" or v.Name == "RequestPlant") then
-                return v
-            end
+-- 4. FIND THE CORRECT REMOTE (Avoiding ModuleScripts)
+local function getPlantRemote()
+    for _, v in pairs(ReplicatedStorage:GetDescendants()) do
+        if v:IsA("RemoteEvent") and (v.Name == "PlantSeed" or v.Name == "RequestPlant") then
+            return v
         end
-        return nil
     end
+    return nil
+end
 
-    local PlantRemote = getRemote()
+-- 5. THE PLANTING ACTION
+local function performPlantAction()
+    if not _G.PlantSettings or not _G.PlantSettings.Enabled then return end
 
-    while task.wait(0.1) do
-        -- Only run if the Toggle is ON in your UI
+    local char = LocalPlayer.Character
+    local heldTool = char and char:FindFirstChildWhichIsA("Tool")
+
+    -- Check if the tool held is a seed (standard check)
+    if heldTool and (heldTool.Name:lower():find("seed") or heldTool.Name:lower():find("shroom") or heldTool.Name:lower():find("potato")) then
+        local targetPlot = getAvailablePlot()
+        local remote = getPlantRemote()
+
+        if targetPlot and remote then
+            -- Clean the name (e.g., "Carrot Seed [x10]" -> "Carrot Seed")
+            local cleanName = heldTool.Name:split(" [")[1]
+
+            -- EXECUTE THE ACTION
+            remote:FireServer(targetPlot, cleanName)
+            return true
+        end
+    end
+    return false
+end
+
+-- 6. CONTINUOUS BACKGROUND LOOP
+task.spawn(function()
+    while true do
+        task.wait(0.1) -- Fast check
         if _G.PlantSettings and _G.PlantSettings.Enabled then
-            -- CHECK WHAT YOU ARE HOLDING IN YOUR HAND
-            local char = LocalPlayer.Character
-            local heldTool = char and char:FindFirstChildWhichIsA("Tool")
-
-            if heldTool then
-                local targetPlot = getAvailablePlot()
-
-                if targetPlot and PlantRemote then
-                    -- CLEAN NAME: Removes "[x50]" suffix so the server accepts the name
-                    local cleanName = heldTool.Name:split(" [")[1]
-
-                    -- FIRE THE REMOTE
-                    PlantRemote:FireServer(targetPlot, cleanName)
-
-                    print("[Mine Hub] Planted held seed: " .. cleanName)
-
-                    -- Wait the delay set in your UI before trying the next plot
-                    task.wait(_G.PlantSettings.Delay or 0.5)
-                end
+            local success = performPlantAction()
+            if success then
+                -- Wait the user's specific delay after a successful plant
+                task.wait(_G.PlantSettings.Delay or 0.5)
             end
         end
+    end
+end)
+
+-- 7. CLICK-TO-PLANT OVERRIDE
+-- This makes the action feel responsive; if you click, it tries to plant immediately.
+LocalPlayer.CharacterChildAdded:Connect(function(child)
+    if child:IsA("Tool") then
+        child.Activated:Connect(function()
+            if _G.PlantSettings and _G.PlantSettings.Enabled then
+                performPlantAction()
+            end
+        end)
     end
 end)

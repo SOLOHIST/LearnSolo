@@ -2,136 +2,98 @@
 _G.PlantSettings = {
     Enabled = false,
     SelectedSeeds = {},
-    Mode = "Good Position",
-    Delay = 0.5
+    Delay = 0.3,
+    PlantRandom = false
+}
+_G.FarmSettings = {
+    AutoHarvest = false,
+    AutoSell = false,
+    SellThreshold = 15,
+    AutoBuy = false,
+    AutoWalk = false,
+    NoClip = false
 }
 _G.PlayerSettings = {
     WalkSpeed = 16
 }
 
--- 2. GET UI LIBRARY
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
--- 3. CREATE WINDOW
 local Window = Rayfield:CreateWindow({
     Name = "MINE HUB | GROW A GARDEN",
     LoadingTitle = "MINE HUB",
-    LoadingSubtitle = "by LearnSolo",
-    ConfigurationSaving = {
-        Enabled = true, -- KEEP THIS TRUE
-        FolderName = "LearnSoloConfigs",
-        FileName = "PlantConfig"
-    },
-    Discord = {
-        Enabled = false,
-        Invite = "YOUR_DISCORD_INVITE",
-        RememberJoins = true
-    },
+    LoadingSubtitle = "Advanced Edition",
+    ConfigurationSaving = { Enabled = true, FolderName = "MineHubConfigs", FileName = "GardenConfig" },
     KeySystem = false,
 })
 
--- 4. LOAD LOGIC FROM GITHUB
-task.wait(0.5)
+-- 2. LOAD LOGIC FROM GITHUB
 loadstring(game:HttpGet("https://raw.githubusercontent.com/SOLOHIST/LearnSolo/main/Modules/AutoPlant.lua"))()
 
--- 5. CREATE TABS
-
--- MAIN TAB
+-- 3. TABS
 local MainTab = Window:CreateTab("Main", "user")
-local PlayerSection = MainTab:CreateSection("Local Player")
-
-MainTab:CreateButton({
-    Name = "Discord Invite",
-    Info = "Join our community for updates!",
-    Interact = 'Copy Link',
-    Callback = function()
-        setclipboard("https://discord.gg/V8hKVN8Cwz")
-        Rayfield:Notify({
-            Title = "Copied!",
-            Content = "Discord invite link copied to clipboard.",
-            Duration = 5,
-            Image = 4483345998,
-        })
-    end,
-})
-
-local SpeedSlider = MainTab:CreateSlider({
+MainTab:CreateSlider({
     Name = "WalkSpeed",
     Range = { 16, 100 },
     Increment = 1,
-    Suffix = "Speed",
     CurrentValue = 16,
-    Flag = "SpeedSlider", -- SAVES AS THIS ID
-    Callback = function(Value)
-        _G.PlayerSettings.WalkSpeed = Value
-    end,
+    Callback = function(Value) _G.PlayerSettings.WalkSpeed = Value end,
 })
 
-MainTab:CreateButton({
-    Name = "Reset Speed",
-    Info = "Sets your speed back to 16",
-    Callback = function()
-        _G.PlayerSettings.WalkSpeed = 16
-        SpeedSlider:Set(16)
-    end,
-})
+local AutoTab = Window:CreateTab("Automation", "play")
 
--- AUTOMATICALLY TAB
-local AutoTab = Window:CreateTab("Automatically", "play")
-AutoTab:CreateSection("Automation Plants")
-
+AutoTab:CreateSection("Planting & Buying")
 AutoTab:CreateDropdown({
-    Name = "Select Seeds",
-    Options = { "Carrot Seed", "Strawberry Seed", "Horned Redrose", "Blueberry Seed", "Buttercup Seed", "Orange Tulip", "Rose", "Autumn Shroom", "Orange Delight", "Banana Orchid", "Olive", "Gem Fruit", "Coinfruit", "Tomato Seed", "Corn Seed", "Daffodil Seed", "Cauliflower", "Foxglove", "Mandrake", "Fall Berry", "Banesberry", "Viburnum Berry", "Fissure Berry", "Pomegranate", "Watermelon Seed", "Pumpkin Seed", "Apple Seed", "Bamboo Seed", "Rafflesia", "Green Apple", "Avocado", "Banana", "Lilac", "Broccoli", "Speargrass", "Buddhas Hand", "Protea", "Coilvine", "Sherrybloom", "Coconut Seed", "Cactus Seed", "Dragon Fruit Seed", "Mango Seed", "Peach", "Pineapple", "Kiwi", "Bell Pepper", "Prickly Pear", "Pink Lily", "Purple Dahlia", "Potato", "Torchflare", "Auburn Pine", "Kniphofia", "Ghost Pepper", "Hollow Bamboo", "Wild Pineapple", "Grape Seed", "Mushroom Seed", "Pepper Seed", "Cacao Seed", "Sunflower Seed", "Loquat", "Feijoa", "Pitcher Plant", "Legacy Sunflower", "Brussels Sprout", "Firewell", "Baobab", "Thornspire", "Yarrow", "Asteris", "Pinkside Dandelion", "Beanstalk Seed", "Ember Lily Seed", "Sugar Apple Seed", "Burning Bud Seed", "Giant Pinecone Seed", "Elder Strawberry Seed", "Romanesco Seed", "Cocomango", "Wyrmvine", "Crimson Thorn Seed", "Zebrazinkle Seed", "Octobloom Seed", "Bamboo Tree", "Lumin Bloom", "Raspberry", "Horsetail", "Blue Raspberry" },
+    Name = "Select Seed",
+    Options = { "Carrot Seed", "Strawberry Seed", "Tomato Seed", "Watermelon Seed", "Pumpkin Seed", "Blueberry Seed" },
     CurrentOption = {},
-    MultipleOptions = true,
-    Flag = "SeedsDropdown", -- SAVES SELECTED SEEDS
-    Callback = function(Options) _G.PlantSettings.SelectedSeeds = Options end,
-})
-
-AutoTab:CreateDropdown({
-    Name = "Select Position",
-    Options = { "Good Position", "Player Position", "Random" },
-    CurrentOption = { "Good Position" },
     MultipleOptions = false,
-    Flag = "PosModeDropdown", -- SAVES SELECTED POSITION
-    Callback = function(Option) _G.PlantSettings.Mode = Option[1] end,
-})
-
-AutoTab:CreateInput({
-    Name = "Delay To Plants",
-    PlaceholderText = "Default: 0.5",
-    Flag = "DelayInput", -- SAVES YOUR TYPED DELAY
-    Callback = function(Text) _G.PlantSettings.Delay = tonumber(Text) or 0.5 end,
+    Callback = function(Option) _G.PlantSettings.SelectedSeeds = Option end,
 })
 
 AutoTab:CreateToggle({
-    Name = "Auto Plants Seed",
+    Name = "Auto Plant",
     CurrentValue = false,
-    Flag = "AutoPlantToggle", -- SAVES IF ON OR OFF
     Callback = function(Value) _G.PlantSettings.Enabled = Value end,
 })
 
--- 6. LOOPS & UTILITIES
+AutoTab:CreateToggle({
+    Name = "Auto Buy Selected Seed",
+    CurrentValue = false,
+    Callback = function(Value) _G.FarmSettings.AutoBuy = Value end,
+})
 
--- WalkSpeed Loop
-task.spawn(function()
-    while task.wait() do
-        pcall(function()
-            local char = game.Players.LocalPlayer.Character
-            if char and char:FindFirstChild("Humanoid") then
-                char.Humanoid.WalkSpeed = _G.PlayerSettings.WalkSpeed
-            end
-        end)
-    end
-end)
+AutoTab:CreateSection("Harvesting & Selling")
+AutoTab:CreateToggle({
+    Name = "Auto Harvest",
+    CurrentValue = false,
+    Callback = function(Value) _G.FarmSettings.AutoHarvest = Value end,
+})
 
--- UI TOGGLE KEY (H)
-game:GetService("UserInputService").InputBegan:Connect(function(input, gpe)
-    if not gpe and input.KeyCode == Enum.KeyCode.H then
-        if Window.Visible then Window:Minimize() else Window:Maximize() end
-    end
-end)
+AutoTab:CreateToggle({
+    Name = "Auto Walk to Plants",
+    CurrentValue = false,
+    Callback = function(Value) _G.FarmSettings.AutoWalk = Value end,
+})
 
--- 7. FINALLY: LOAD SAVED CONFIGURATION
+AutoTab:CreateToggle({
+    Name = "Auto Sell",
+    CurrentValue = false,
+    Callback = function(Value) _G.FarmSettings.AutoSell = Value end,
+})
+
+AutoTab:CreateSlider({
+    Name = "Sell at X Crops",
+    Range = { 1, 100 },
+    Increment = 1,
+    CurrentValue = 15,
+    Callback = function(Value) _G.FarmSettings.SellThreshold = Value end,
+})
+
+AutoTab:CreateToggle({
+    Name = "Noclip (Use with Auto-Walk)",
+    CurrentValue = false,
+    Callback = function(Value) _G.FarmSettings.NoClip = Value end,
+})
+
 Rayfield:LoadConfiguration()

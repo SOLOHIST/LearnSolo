@@ -1,20 +1,22 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 local GameEvents = ReplicatedStorage:WaitForChild("GameEvents")
 
--- 1. HELPERS & FINDERS
-local function getMyFarm()
-    -- Look in workspace.Farm (as seen in the high-end script) or fallback to workspace.Workspace
-    local farmFolder = workspace:FindFirstChild("Farm") or workspace:FindFirstChild("Workspace")
-    if not farmFolder then return nil end
+-- 1. DYNAMIC REMOTES (Handles different game versions)
+local PlantRemote = GameEvents:FindFirstChild("Plant_RE")
+local HarvestRemote = GameEvents:FindFirstChild("Harvest_RE")
+local SellRemote = GameEvents:FindFirstChild("Sell_Inventory") or GameEvents:FindFirstChild("Sell_RE")
 
-    for _, farm in pairs(farmFolder:GetChildren()) do
-        local important = farm:FindFirstChild("Important")
-        if important then
-            local owner = important:FindFirstChild("Data") and important.Data:FindFirstChild("Owner")
-            if owner and owner.Value == LocalPlayer.Name then
+-- 2. SMART FARM FINDER
+local function getMyFarm()
+    -- Check common locations: workspace.Farm or workspace.Workspace
+    local locations = { workspace:FindFirstChild("Farm"), workspace:FindFirstChild("Workspace"), workspace }
+
+    for _, loc in pairs(locations) do
+        if loc then
+            local farm = loc:FindFirstChild(LocalPlayer.Name)
+            if farm and farm:FindFirstChild("Important") then
                 return farm
             end
         end
@@ -22,143 +24,128 @@ local function getMyFarm()
     return nil
 end
 
-local function getFarmArea(basePart)
-    local center = basePart.Position
-    local size = basePart.Size
-    return {
-        x1 = math.ceil(center.X - (size.X / 2)),
-        z1 = math.ceil(center.Z - (size.Z / 2)),
-        x2 = math.floor(center.X + (size.X / 2)),
-        z2 = math.floor(center.Z + (size.Z / 2))
-    }
+-- 3. PROXIMITY HARVEST (The most reliable way)
+local function firePrompt(obj)
+    local prompt = obj:FindFirstChildWhichIsA("ProximityPrompt", true)
+    if prompt and prompt.Enabled then
+        if fireproximityprompt then
+            fireproximityprompt(prompt)
+        else
+            -- Manual fallback for low-end executors
+            task.spawn(function()
+                prompt:InputHoldBegin()
+                task.wait(prompt.HoldDuration + 0.1)
+                prompt:InputHoldEnd()
+            end)
+        end
+        return true
+    end
+    return false
 end
 
--- 2. AUTO-PLANT LOGIC (Grid Based)
-local function performPlanting()
-    local farm = getMyFarm()
-    if not farm or not _G.PlantSettings.Enabled then return end
+-- 4. AUTO-PLANTING
+local function doPlant()
+    if not _G.PlantSettings or not _G.PlantSettings.Enabled then return end
 
-    -- Find Seed Tool
+    local farm = getMyFarm()
+    if not farm then return end
+
+    -- Find the seed tool
     local seedTool = nil
-    for _, selectedName in pairs(_G.PlantSettings.SelectedSeeds) do
-        seedTool = LocalPlayer.Backpack:FindFirstChild(selectedName) or
-            LocalPlayer.Character:FindFirstChild(selectedName)
+    for _, selected in pairs(_G.PlantSettings.SelectedSeeds) do
+        seedTool = LocalPlayer.Backpack:FindFirstChild(selected) or LocalPlayer.Character:FindFirstChild(selected)
         if seedTool then break end
     end
+
     if not seedTool then return end
 
-    -- Get Dirt Area
-    local dirt = farm.Important.Plant_Locations:FindFirstChildOfClass("Part")
-    if not dirt then return end
-    local area = getFarmArea(dirt)
-
-    -- Equip Tool
+    -- Ensure tool is equipped
     if seedTool.Parent == LocalPlayer.Backpack then
         LocalPlayer.Character.Humanoid:EquipTool(seedTool)
     end
 
-    local cleanName = seedTool.Name:split(" Seed")[1]
+    -- Clean the name (e.g., "Carrot Seed" -> "Carrot")
+    local cleanName = seedTool.Name:gsub(" Seed", ""):gsub(" %[%d+%%]", ""):split(" [")[1]
 
-    -- Grid Planting (Logic from depthso)
-    for x = area.x1, area.x2, 4 do -- Step of 4 to avoid over-stacking
-        for z = area.z1, area.z2, 4 do
-            if not _G.PlantSettings.Enabled then break end
+    -- Find spots to plant
+    local locations = farm.Important:FindFirstChild("Plant_Locations")
+    if locations then
+        for _, spot in pairs(locations:GetChildren()) do
+            -- Check if spot is empty (no plant within 1.5 studs)
+            local isOccupied = false
+            for _, p in pairs(farm.Important.Plants_Physical:GetChildren()) do
+                if (p:GetPivot().Position - spot.Position).Magnitude < 2 then
+                    isOccupied = true
+                    break
+                end
+            end
 
-            -- Fire Remote
-            GameEvents.Plant_RE:FireServer(Vector3.new(x, dirt.Position.Y + 0.5, z), cleanName)
-            task.wait(_G.PlantSettings.Delay or 0.1)
+            if not isOccupied then
+                PlantRemote:FireServer(spot.Position, cleanName)
+                task.wait(_G.PlantSettings.Delay or 0.2)
+            end
         end
     end
 end
 
--- 3. AUTO-HARVEST LOGIC (Prompt Based)
-local function performHarvest()
+-- 5. AUTO-HARVEST
+local function doHarvest()
+    if not _G.FarmSettings or not _G.FarmSettings.AutoHarvest then return end
+
     local farm = getMyFarm()
-    if not farm or not _G.FarmSettings.AutoHarvest then return end
+    if not farm then return end
 
     local plants = farm.Important:FindFirstChild("Plants_Physical")
-    if not plants then return end
-
-    for _, plant in pairs(plants:GetChildren()) do
-        local prompt = plant:FindFirstChildWhichIsA("ProximityPrompt", true)
-        if prompt and prompt.Enabled then
-            -- Use fireproximityprompt if executor supports it
-            if fireproximityprompt then
-                fireproximityprompt(prompt)
-            else
-                -- Fallback: Teleport to prompt and interact
-                prompt:InputHoldBegin()
-                task.wait(0.1)
-                prompt:InputHoldEnd()
+    if plants then
+        for _, plant in pairs(plants:GetChildren()) do
+            -- Look for prompts inside the plant or its fruits
+            firePrompt(plant)
+            local fruits = plant:FindFirstChild("Fruits")
+            if fruits then
+                for _, fruit in pairs(fruits:GetChildren()) do
+                    firePrompt(fruit)
+                end
             end
         end
     end
 end
 
--- 4. AUTO-SELL LOGIC
-local function performSell()
-    if not _G.FarmSettings.AutoSell then return end
+-- 6. MAIN LOOPS
+task.spawn(function()
+    while true do
+        task.wait(0.5)
+        pcall(doHarvest)
 
-    -- Most "Grow a Garden" versions use this remote
-    GameEvents.Sell_Inventory:FireServer()
-end
+        if _G.FarmSettings and _G.FarmSettings.AutoSell then
+            pcall(function() SellRemote:FireServer() end)
+        end
+    end
+end)
 
--- 5. AUTO-COLLECT (Money/Gems)
-local function performCollect()
-    if not _G.FarmSettings.AutoCollect then return end
+task.spawn(function()
+    while true do
+        task.wait(1)
+        if _G.PlantSettings and _G.PlantSettings.Enabled then
+            pcall(doPlant)
+        end
+    end
+end)
 
-    for _, obj in pairs(workspace:GetChildren()) do
-        if obj.Name == "Coin" or obj.Name == "Gem" or obj.Name == "Sheckle" then
+-- 7. AUTO-COLLECT SHECKLES (Logic from depthso script)
+task.spawn(function()
+    while true do
+        task.wait(0.1)
+        if _G.FarmSettings and _G.FarmSettings.AutoCollect then
             local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-            if hrp and (obj.Position - hrp.Position).Magnitude < 50 then
-                obj.CFrame = hrp.CFrame -- Bring money to player
-            end
-        end
-    end
-end
-
--- 6. CHARACTER MODS (NoClip)
-RunService.Stepped:Connect(function()
-    if _G.FarmSettings and _G.FarmSettings.AutoHarvest then -- Noclip while harvesting
-        if LocalPlayer.Character then
-            for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.CanCollide = false
+            if hrp then
+                for _, obj in pairs(workspace:GetChildren()) do
+                    if obj.Name == "Coin" or obj.Name == "Gem" or obj.Name == "Sheckle" then
+                        obj.CFrame = hrp.CFrame
+                    end
                 end
             end
         end
     end
 end)
 
--- 7. MAIN CONTROL LOOPS
-task.spawn(function()
-    while true do
-        task.wait(1) -- Heavy check every 1s
-        if _G.PlantSettings.Enabled then
-            pcall(performPlanting)
-        end
-    end
-end)
-
-task.spawn(function()
-    while true do
-        task.wait(0.3) -- Fast check for harvesting
-        if _G.FarmSettings.AutoHarvest then
-            pcall(performHarvest)
-        end
-        if _G.FarmSettings.AutoSell then
-            pcall(performSell)
-        end
-    end
-end)
-
-task.spawn(function()
-    while true do
-        task.wait(0.1) -- Ultra fast for money collection
-        if _G.FarmSettings.AutoCollect then
-            pcall(performCollect)
-        end
-    end
-end)
-
-print("[MINE HUB] Advanced Logic Loaded: Grid-Planting & Prompt-Harvesting active.")
+print("[MINE HUB] Logic Loaded Successfully.")

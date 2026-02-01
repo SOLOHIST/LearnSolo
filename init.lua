@@ -3,10 +3,9 @@
 -- 1. SETUP GLOBALS
 _G.PlantSettings = {
     Enabled = false,
-    SelectedSeeds = {},     -- Will store the selection from dropdown
-    Mode = "Good Position", -- Default Mode
+    SelectedSeeds = {},
+    Mode = "Good Position", -- Default Position Mode
     Delay = 0.3,
-    PlantRandom = false
 }
 _G.FarmSettings = {
     AutoHarvest = false,
@@ -30,7 +29,8 @@ local Window = Rayfield:CreateWindow({
     KeySystem = false,
 })
 
--- 2. LOAD LOGIC FROM GITHUB (Or local if testing)
+-- 2. LOAD LOGIC FROM GITHUB
+-- Note: If you are testing locally, ensure the logic below is updated in your AutoPlant.lua file
 loadstring(game:HttpGet("https://raw.githubusercontent.com/SOLOHIST/LearnSolo/main/Modules/AutoPlant.lua"))()
 
 -- 3. TABS
@@ -55,7 +55,7 @@ AutoTab:CreateDropdown({
     Callback = function(Option) _G.PlantSettings.SelectedSeeds = Option end,
 })
 
--- NEW DROPDOWN ADDED HERE
+-- NEW: POSITION MODE DROPDOWN
 AutoTab:CreateDropdown({
     Name = "Select Position",
     Options = { "Good Position", "Random", "Player Position" },

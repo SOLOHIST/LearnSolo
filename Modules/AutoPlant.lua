@@ -35,14 +35,12 @@ local function performPlanting()
     local farm = GetMyFarm()
     if not farm then return end
 
-    -- 1. Find the seed tool
+    -- 1. Find the seed
     local seedTool = nil
-    local selectedNames = _G.PlantSettings.SelectedSeeds
+    local selectedTable = _G.PlantSettings.SelectedSeeds
+    if type(selectedTable) == "string" then selectedTable = { selectedTable } end
 
-    -- Handle both string and table formats from Rayfield
-    if type(selectedNames) == "string" then selectedNames = { selectedNames } end
-
-    for _, selected in pairs(selectedNames) do
+    for _, selected in pairs(selectedTable) do
         seedTool = LocalPlayer.Backpack:FindFirstChild(selected) or LocalPlayer.Character:FindFirstChild(selected)
         if seedTool then break end
     end
@@ -63,30 +61,32 @@ local function performPlanting()
     local mode = _G.PlantSettings.Mode
 
     if mode == "Good Position" then
-        -- GRID PLANTING (Perfect Rows)
+        -- GRID PLANTING (Calculated spacing)
         for x = area.x1, area.x2, 4 do
             for z = area.z1, area.z2, 4 do
-                -- Check if still enabled and mode hasn't changed mid-loop
                 if not _G.PlantSettings.Enabled or _G.PlantSettings.Mode ~= "Good Position" then return end
                 GameEvents.Plant_RE:FireServer(Vector3.new(x, area.y, z), cleanName)
                 task.wait(_G.PlantSettings.Delay or 0.3)
             end
         end
     elseif mode == "Random" then
-        -- RANDOM POSITIONS
+        -- RANDOM POSITIONS (Within farm bounds)
         local randomX = math.random(area.x1, area.x2)
         local randomZ = math.random(area.z1, area.z2)
         GameEvents.Plant_RE:FireServer(Vector3.new(randomX, area.y, randomZ), cleanName)
         task.wait(_G.PlantSettings.Delay or 0.3)
     elseif mode == "Player Position" then
-        -- AT PLAYER FEET (Clamped to dirt Y level)
-        local pPos = LocalPlayer.Character.HumanoidRootPart.Position
-        GameEvents.Plant_RE:FireServer(Vector3.new(pPos.X, area.y, pPos.Z), cleanName)
-        task.wait(_G.PlantSettings.Delay or 0.3)
+        -- AT PLAYER FEET
+        local char = LocalPlayer.Character
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            local pPos = char.HumanoidRootPart.Position
+            GameEvents.Plant_RE:FireServer(Vector3.new(pPos.X, area.y, pPos.Z), cleanName)
+            task.wait(_G.PlantSettings.Delay or 0.3)
+        end
     end
 end
 
---// LOOP FOR PLANTING
+--// LOOPS
 task.spawn(function()
     while true do
         task.wait(0.5)
@@ -96,7 +96,7 @@ task.spawn(function()
     end
 end)
 
---// HARVESTING LOGIC
+-- Harvesting logic remains same...
 task.spawn(function()
     while true do
         task.wait(0.5)
@@ -114,7 +114,7 @@ task.spawn(function()
     end
 end)
 
---// AUTO SELL
+-- Sell logic remains same...
 task.spawn(function()
     while true do
         task.wait(1)

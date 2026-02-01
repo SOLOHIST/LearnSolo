@@ -1,3 +1,4 @@
+-- AutoPlant.lua
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -34,12 +35,18 @@ local function performPlanting()
     local farm = GetMyFarm()
     if not farm then return end
 
-    -- 1. Find the seed
+    -- 1. Find the seed tool
     local seedTool = nil
-    for _, selected in pairs(_G.PlantSettings.SelectedSeeds) do
+    local selectedNames = _G.PlantSettings.SelectedSeeds
+
+    -- Handle both string and table formats from Rayfield
+    if type(selectedNames) == "string" then selectedNames = { selectedNames } end
+
+    for _, selected in pairs(selectedNames) do
         seedTool = LocalPlayer.Backpack:FindFirstChild(selected) or LocalPlayer.Character:FindFirstChild(selected)
         if seedTool then break end
     end
+
     if not seedTool then return end
 
     -- 2. Equip tool
@@ -49,6 +56,7 @@ local function performPlanting()
 
     local cleanName = seedTool.Name:gsub(" Seed", ""):split(" [")[1]
     local dirt = farm.Important.Plant_Locations:FindFirstChildOfClass("Part")
+    if not dirt then return end
     local area = GetArea(dirt)
 
     -- 3. HANDLE MODES
@@ -58,22 +66,23 @@ local function performPlanting()
         -- GRID PLANTING (Perfect Rows)
         for x = area.x1, area.x2, 4 do
             for z = area.z1, area.z2, 4 do
-                if not _G.PlantSettings.Enabled or _G.PlantSettings.Mode ~= "Good Position" then break end
+                -- Check if still enabled and mode hasn't changed mid-loop
+                if not _G.PlantSettings.Enabled or _G.PlantSettings.Mode ~= "Good Position" then return end
                 GameEvents.Plant_RE:FireServer(Vector3.new(x, area.y, z), cleanName)
-                task.wait(_G.PlantSettings.Delay or 0.2)
+                task.wait(_G.PlantSettings.Delay or 0.3)
             end
         end
     elseif mode == "Random" then
-        -- RANDOM POSITIONS (Within farm bounds)
+        -- RANDOM POSITIONS
         local randomX = math.random(area.x1, area.x2)
         local randomZ = math.random(area.z1, area.z2)
         GameEvents.Plant_RE:FireServer(Vector3.new(randomX, area.y, randomZ), cleanName)
-        task.wait(_G.PlantSettings.Delay or 0.2)
+        task.wait(_G.PlantSettings.Delay or 0.3)
     elseif mode == "Player Position" then
-        -- AT PLAYER FEET
+        -- AT PLAYER FEET (Clamped to dirt Y level)
         local pPos = LocalPlayer.Character.HumanoidRootPart.Position
         GameEvents.Plant_RE:FireServer(Vector3.new(pPos.X, area.y, pPos.Z), cleanName)
-        task.wait(_G.PlantSettings.Delay or 0.2)
+        task.wait(_G.PlantSettings.Delay or 0.3)
     end
 end
 
@@ -87,7 +96,7 @@ task.spawn(function()
     end
 end)
 
---// HARVESTING LOGIC (Using ProximityPrompts)
+--// HARVESTING LOGIC
 task.spawn(function()
     while true do
         task.wait(0.5)
@@ -105,7 +114,7 @@ task.spawn(function()
     end
 end)
 
---// AUTO SELL & COLLECT
+--// AUTO SELL
 task.spawn(function()
     while true do
         task.wait(1)

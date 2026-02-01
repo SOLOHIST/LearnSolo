@@ -1,7 +1,10 @@
+-- init.lua
+
 -- 1. SETUP GLOBALS
 _G.PlantSettings = {
     Enabled = false,
-    SelectedSeeds = {},
+    SelectedSeeds = {},     -- Will store the selection from dropdown
+    Mode = "Good Position", -- Default Mode
     Delay = 0.3,
     PlantRandom = false
 }
@@ -27,7 +30,7 @@ local Window = Rayfield:CreateWindow({
     KeySystem = false,
 })
 
--- 2. LOAD LOGIC FROM GITHUB
+-- 2. LOAD LOGIC FROM GITHUB (Or local if testing)
 loadstring(game:HttpGet("https://raw.githubusercontent.com/SOLOHIST/LearnSolo/main/Modules/AutoPlant.lua"))()
 
 -- 3. TABS
@@ -43,12 +46,24 @@ MainTab:CreateSlider({
 local AutoTab = Window:CreateTab("Automation", "play")
 
 AutoTab:CreateSection("Planting & Buying")
+
 AutoTab:CreateDropdown({
     Name = "Select Seed",
     Options = { "Carrot Seed", "Strawberry Seed", "Tomato Seed", "Watermelon Seed", "Pumpkin Seed", "Blueberry Seed" },
-    CurrentOption = {},
+    CurrentOption = { "Carrot Seed" },
     MultipleOptions = false,
     Callback = function(Option) _G.PlantSettings.SelectedSeeds = Option end,
+})
+
+-- NEW DROPDOWN ADDED HERE
+AutoTab:CreateDropdown({
+    Name = "Select Position",
+    Options = { "Good Position", "Random", "Player Position" },
+    CurrentOption = { "Good Position" },
+    MultipleOptions = false,
+    Callback = function(Option)
+        _G.PlantSettings.Mode = Option[1]
+    end,
 })
 
 AutoTab:CreateToggle({

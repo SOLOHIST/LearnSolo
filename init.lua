@@ -3,8 +3,8 @@
 -- 1. SETUP GLOBALS
 _G.PlantSettings = {
     Enabled = false,
-    SelectedSeeds = {},
-    Mode = "Good Position", -- Default Position Mode
+    SelectedSeeds = "Carrot Seed", -- Default seed
+    Mode = "Good Position",        -- Default position
     Delay = 0.3,
 }
 _G.FarmSettings = {
@@ -12,11 +12,6 @@ _G.FarmSettings = {
     AutoSell = false,
     SellThreshold = 15,
     AutoBuy = false,
-    AutoWalk = false,
-    NoClip = false
-}
-_G.PlayerSettings = {
-    WalkSpeed = 16
 }
 
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
@@ -29,33 +24,27 @@ local Window = Rayfield:CreateWindow({
     KeySystem = false,
 })
 
--- 2. LOAD LOGIC FROM GITHUB
--- Note: If you are testing locally, ensure the logic below is updated in your AutoPlant.lua file
+-- 2. LOAD LOGIC
+-- Make sure your AutoPlant.lua (below) is hosted or placed correctly
 loadstring(game:HttpGet("https://raw.githubusercontent.com/SOLOHIST/LearnSolo/main/Modules/AutoPlant.lua"))()
 
 -- 3. TABS
-local MainTab = Window:CreateTab("Main", "user")
-MainTab:CreateSlider({
-    Name = "WalkSpeed",
-    Range = { 16, 100 },
-    Increment = 1,
-    CurrentValue = 16,
-    Callback = function(Value) _G.PlayerSettings.WalkSpeed = Value end,
-})
-
 local AutoTab = Window:CreateTab("Automation", "play")
 
-AutoTab:CreateSection("Planting & Buying")
+AutoTab:CreateSection("Planting Configuration")
 
+-- Seed Selection
 AutoTab:CreateDropdown({
     Name = "Select Seed",
     Options = { "Carrot Seed", "Strawberry Seed", "Tomato Seed", "Watermelon Seed", "Pumpkin Seed", "Blueberry Seed" },
     CurrentOption = { "Carrot Seed" },
     MultipleOptions = false,
-    Callback = function(Option) _G.PlantSettings.SelectedSeeds = Option end,
+    Callback = function(Option)
+        _G.PlantSettings.SelectedSeeds = Option[1]
+    end,
 })
 
--- NEW: POSITION MODE DROPDOWN
+-- Position Selection
 AutoTab:CreateDropdown({
     Name = "Select Position",
     Options = { "Good Position", "Random", "Player Position" },
@@ -66,49 +55,24 @@ AutoTab:CreateDropdown({
     end,
 })
 
+-- The Master Toggle
 AutoTab:CreateToggle({
     Name = "Auto Plant",
     CurrentValue = false,
-    Callback = function(Value) _G.PlantSettings.Enabled = Value end,
+    Callback = function(Value)
+        _G.PlantSettings.Enabled = Value
+    end,
 })
 
+AutoTab:CreateSection("Other Settings")
 AutoTab:CreateToggle({
     Name = "Auto Buy Selected Seed",
     CurrentValue = false,
     Callback = function(Value) _G.FarmSettings.AutoBuy = Value end,
 })
 
-AutoTab:CreateSection("Harvesting & Selling")
 AutoTab:CreateToggle({
     Name = "Auto Harvest",
     CurrentValue = false,
     Callback = function(Value) _G.FarmSettings.AutoHarvest = Value end,
 })
-
-AutoTab:CreateToggle({
-    Name = "Auto Walk to Plants",
-    CurrentValue = false,
-    Callback = function(Value) _G.FarmSettings.AutoWalk = Value end,
-})
-
-AutoTab:CreateToggle({
-    Name = "Auto Sell",
-    CurrentValue = false,
-    Callback = function(Value) _G.FarmSettings.AutoSell = Value end,
-})
-
-AutoTab:CreateSlider({
-    Name = "Sell at X Crops",
-    Range = { 1, 100 },
-    Increment = 1,
-    CurrentValue = 15,
-    Callback = function(Value) _G.FarmSettings.SellThreshold = Value end,
-})
-
-AutoTab:CreateToggle({
-    Name = "Noclip (Use with Auto-Walk)",
-    CurrentValue = false,
-    Callback = function(Value) _G.FarmSettings.NoClip = Value end,
-})
-
-Rayfield:LoadConfiguration()
